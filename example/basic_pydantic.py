@@ -16,6 +16,7 @@ class User(pydantic.BaseModel):
     ab: int
     caa: int
     c: int
+    z: str
 
 class Item(XDD):
     id2: int

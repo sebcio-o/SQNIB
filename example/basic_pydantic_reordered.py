@@ -14,8 +14,8 @@ class User(pydantic.BaseModel):
     c: int
     caa: int
     id1: int
+    z: str
     string1: Optional[str]
 
 class Item(XDD):
     id2: int
-    string2: list[str]

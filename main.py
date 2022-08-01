@@ -25,7 +25,7 @@ def get_pydantic_classes(myAst: ast.AST) -> dict[str, int]:
         if type(node) != ast.ClassDef:
             continue
         for i in node.bases:
-            current_classes = sum([modules, list(classes.keys())], [])
+            current_classes = modules + list(classes.keys())
             if i == [ast.Attribute, ast.Name]:
                 continue
             name = getattr(i, 'id', None)
@@ -33,12 +33,26 @@ def get_pydantic_classes(myAst: ast.AST) -> dict[str, int]:
                 name = f"{i.value.id}.{i.attr}"  
             if name in current_classes:
                 classes[node.name] = node
+            
     return classes
 
 def reorder_pydantic_fields(myAst: ast.AST):
     classes = get_pydantic_classes(myAst)
     for obj in classes.values():
-        obj.body = sorted(obj.body, key=lambda x: x.target.id)
+        elements = obj.body
+        obj.body = []
+        
+        required, optional = [], []
+        for el in elements: 
+            if type(el.annotation) == ast.Subscript:
+                if el.annotation.value.id == 'Optional':
+                    optional.append(el)
+            else:
+                required.append(el)
+
+        required = sorted(required, key=lambda x: x.target.id)
+        optional = sorted(optional, key=lambda x: x.target.id)
+        obj.body = required + optional 
     return myAst
 
 if '__main__' == __name__:
@@ -48,7 +62,8 @@ if '__main__' == __name__:
         raise "Dupa error"
 
     file = Path(path)
-    tree = ast.parse(file.read_text())
+    code = file.read_text()
+    tree = ast.parse(code)
     reordered_ast = reorder_pydantic_fields(tree)
 
     new_file_path = Path(str(file).replace(file.suffix, "_reordered" + file.suffix)) 
